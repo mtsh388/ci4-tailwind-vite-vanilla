@@ -1,0 +1,19 @@
+{
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.0.11"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "datatables.net": "^2.3.8",
+    "datatables.net-dt": "^2.3.8",
+    "datatables.net-responsive": "^3.0.8",
+    "datatables.net-responsive-dt": "^3.0.8",
+    "lucide": "^1.14.0",
+    "sweetalert2": "^11.26.24"
+  }
+}

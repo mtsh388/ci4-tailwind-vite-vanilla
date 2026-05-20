@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+@source "../../app/Views";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #2563eb;
+}
+
+/*
+|--------------------------------------------------------------------------
+| PAGE LOADER
+|--------------------------------------------------------------------------
+*/
+#pageLoader {
+  transition: all 0.2s ease;
+}
+
+/*
+|--------------------------------------------------------------------------
+| DATATABLES
+|--------------------------------------------------------------------------
+*/
+table.dataTable {
+  @apply w-full border-collapse;
+}
+
+/*
+|--------------------------------------------------------------------------
+| TABLE HEADER
+|--------------------------------------------------------------------------
+*/
+table.dataTable thead th {
+  @apply border-b
+         border-slate-200
+         bg-slate-50
+         px-4
+         py-3
+         text-left
+         text-sm
+         font-semibold
+         text-slate-700
+
+         dark:border-slate-700
+         dark:bg-slate-800
+         dark:text-slate-200;
+}
+
+/*
+|--------------------------------------------------------------------------
+| TABLE BODY
+|--------------------------------------------------------------------------
+*/
+table.dataTable tbody td {
+  @apply border-b
+         border-slate-200
+         px-4
+         py-3
+         text-sm
+         text-slate-700
+
+         dark:border-slate-700
+         dark:text-slate-300;
+}
+
+/*
+|--------------------------------------------------------------------------
+| WRAPPER TEXT
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper {
+  @apply text-slate-700
+         dark:text-slate-300;
+}
+
+/*
+|--------------------------------------------------------------------------
+| INFO / FILTER / PAGINATION
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  @apply text-slate-600
+         dark:text-slate-400;
+}
+
+/*
+|--------------------------------------------------------------------------
+| SEARCH INPUT
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_filter input {
+  @apply rounded-xl
+         border
+         border-slate-300
+         bg-white
+         px-4
+         py-2
+         text-slate-700
+         outline-none
+
+         dark:border-slate-700
+         dark:bg-slate-800
+         dark:text-white;
+}
+
+/*
+|--------------------------------------------------------------------------
+| SELECT LENGTH
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_length select {
+  @apply rounded-xl
+         border
+         border-slate-300
+         bg-white
+         px-3
+         py-2
+         text-slate-700
+
+         dark:border-slate-700
+         dark:bg-slate-800
+         dark:text-white;
+}
+
+/*
+|--------------------------------------------------------------------------
+| PAGINATION BUTTON
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  @apply rounded-lg
+         px-3
+         py-2
+         text-slate-700
+         transition
+         hover:bg-slate-100
+
+         dark:text-slate-300
+         dark:hover:bg-slate-800;
+}
+
+/*
+|--------------------------------------------------------------------------
+| CURRENT PAGE
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  @apply bg-blue-600
+         text-white
+         hover:bg-blue-700
+
+         dark:bg-blue-500
+         dark:text-white;
+}
+
+/*
+|--------------------------------------------------------------------------
+| DISABLED BUTTON
+|--------------------------------------------------------------------------
+*/
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  @apply cursor-not-allowed
+         opacity-50;
+}
+
+/*
+|--------------------------------------------------------------------------
+| ROW HOVER
+|--------------------------------------------------------------------------
+*/
+table.dataTable tbody tr {
+  @apply transition-colors
+         hover:bg-slate-50
+
+         dark:hover:bg-slate-800/50;
+}
