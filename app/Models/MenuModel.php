@@ -81,7 +81,13 @@ class MenuModel extends Model
         | MERGE
         |--------------------------------------------------------------------------
         */
-        $result = array_merge($parents, $menus);
+        $menuIds = array_column($menus, 'id');
+
+        $filteredParents = array_filter($parents, function ($parent) use ($menuIds) {
+            return !in_array($parent['id'], $menuIds);
+        });
+
+        $result = array_merge($filteredParents, $menus);
         usort($result, function ($a, $b) {
             return $a['sort_order'] <=> $b['sort_order'];
         });

@@ -9,10 +9,12 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@iconify/iconify": "^3.1.1",
     "datatables.net": "^2.3.8",
     "datatables.net-dt": "^2.3.8",
     "datatables.net-responsive": "^3.0.8",
     "datatables.net-responsive-dt": "^3.0.8",
+    "iconify-icon": "^3.0.2",
     "lucide": "^1.14.0",
     "sweetalert2": "^11.26.24"
   }

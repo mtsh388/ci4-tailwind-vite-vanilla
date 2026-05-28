@@ -9,6 +9,7 @@ $routes->get('/', 'Auth::login');
 
 $routes->get('/login', 'Auth::login');
 $routes->post('/login/process', 'Auth::process');
+$routes->get('/auth/insert_admin', 'Auth::insert_admin');
 $routes->get('/logout', 'Auth::logout');
 
 $routes->group('', ['filter' => 'auth'], function ($routes) {

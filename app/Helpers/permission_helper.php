@@ -13,7 +13,6 @@ if (!function_exists('hasPermission')) {
       ->where('url', $url)
       ->get()
       ->getRowArray();
-
     if (!$menu) {
       return false;
     }
@@ -34,7 +33,6 @@ if (!function_exists('hasPermission')) {
       ->where('menu_id', $menu['id'])
       ->get()
       ->getRowArray();
-
     if (!$access) {
       return false;
     }

@@ -1,6 +1,6 @@
 /*
-SQLyog Professional
-MySQL - 10.4.22-MariaDB : Database - ci4
+SQLyog Ultimate v13.1.1 (64 bit)
+MySQL - 10.4.32-MariaDB : Database - ci4
 *********************************************************************
 */
 
@@ -12,7 +12,7 @@ MySQL - 10.4.22-MariaDB : Database - ci4
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-CREATE DATABASE /*!32312 IF NOT EXISTS*/`ci4` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/`ci4` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
 
 USE `ci4`;
 
@@ -26,7 +26,12 @@ CREATE TABLE `levels` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `levels` */
+
+insert  into `levels`(`id`,`name`,`created_at`,`updated_at`) values 
+(1,'Administrator',NULL,NULL);
 
 /*Table structure for table `menu_access` */
 
@@ -41,7 +46,16 @@ CREATE TABLE `menu_access` (
   `can_update` tinyint(4) DEFAULT 0,
   `can_delete` tinyint(4) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `menu_access` */
+
+insert  into `menu_access`(`id`,`level_id`,`menu_id`,`can_view`,`can_create`,`can_update`,`can_delete`) values 
+(1,1,1,1,0,0,0),
+(2,1,2,1,1,1,1),
+(3,1,3,1,1,1,1),
+(4,1,4,1,1,1,1),
+(6,1,6,1,1,1,1);
 
 /*Table structure for table `menus` */
 
@@ -58,7 +72,16 @@ CREATE TABLE `menus` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `menus` */
+
+insert  into `menus`(`id`,`parent_id`,`name`,`icon`,`url`,`sort_order`,`is_active`,`created_at`,`updated_at`) values 
+(1,NULL,'Dashboard','layout-dashboard','dashboard',0,1,NULL,NULL),
+(2,NULL,'Pengaturan','database','#',1,1,NULL,NULL),
+(3,2,'Menu','menu','menus',1,1,NULL,NULL),
+(4,2,'Users','users','users',0,1,NULL,NULL),
+(6,2,'Level','shield','levels',2,1,NULL,NULL);
 
 /*Table structure for table `users` */
 
@@ -77,7 +100,12 @@ CREATE TABLE `users` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `users` */
+
+insert  into `users`(`id`,`level_id`,`nama`,`email`,`username`,`password`,`is_active`,`change_password`,`created_at`,`updated_at`) values 
+(7,1,'Admin','mtsyarif388@gmail.com','admin','$2y$12$hImj2/5TBvzihne/HMu9lek9nph6R2DVo4qi1axy.U2wKJHFbnTqm',1,1,'2026-05-28 12:28:58','2026-05-28 12:28:58');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

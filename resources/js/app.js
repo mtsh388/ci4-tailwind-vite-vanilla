@@ -10,6 +10,8 @@ import "./sidebar";
 import "./dropdown";
 import "./datatables";
 import "./lucide";
+import "iconify-icon";
+import './icon-picker';
 import "./sweetalert";
 import "./menu-status";
 
