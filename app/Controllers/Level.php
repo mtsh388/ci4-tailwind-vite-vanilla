@@ -3,14 +3,18 @@
 namespace App\Controllers;
 
 use App\Models\LevelModel;
+use App\Traits\DatatableTrait;
 
 class Level extends BaseController
 {
+    use DatatableTrait;
+
     protected $levelModel;
 
     public function __construct()
     {
         $this->levelModel = new LevelModel();
+        helper('datatable_html');
     }
 
     /*
@@ -20,9 +24,8 @@ class Level extends BaseController
     */
     public function index()
     {
-        if (!hasPermission('levels', 'view')) {
-            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
-        }
+        $this->checkPermission('levels', 'view');
+
         return $this->render('levels/index', [
             'title'  => 'Levels',
             'levels' => $this->levelModel
@@ -38,9 +41,8 @@ class Level extends BaseController
     */
     public function create()
     {
-        if (!hasPermission('levels', 'create')) {
-            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
-        }
+        $this->checkPermission('levels', 'create');
+
         return $this->render('levels/create', [
             'title' => 'Tambah Level',
         ]);
@@ -57,15 +59,11 @@ class Level extends BaseController
             'name' => 'required|min_length[3]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateOrRedirect($rules)) {
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->with(
-                    'error',
-                    validation_list_errors()
-                );
+                ->withInput();
         }
 
         $this->levelModel->insert([
@@ -106,22 +104,17 @@ class Level extends BaseController
     */
     public function update($id)
     {
-        if (!hasPermission('levels', 'update')) {
-            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
-        }
+        $this->checkPermission('levels', 'update');
+
         $rules = [
             'name' => 'required|min_length[3]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateOrRedirect($rules)) {
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->with(
-                    'error',
-                    validation_list_errors()
-                );
+                ->withInput();
         }
 
         $this->levelModel->update($id, [
@@ -143,9 +136,8 @@ class Level extends BaseController
     */
     public function delete($id)
     {
-        if (!hasPermission('levels', 'delete')) {
-            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
-        }
+        $this->checkPermission('levels', 'delete');
+
         $this->levelModel->delete($id);
 
         return redirect()
@@ -155,14 +147,10 @@ class Level extends BaseController
                 'Level berhasil dihapus'
             );
     }
+
     public function datatable()
     {
-        $request = service('request');
-
-        $draw   = $request->getPost('draw');
-        $start  = $request->getPost('start');
-        $length = $request->getPost('length');
-        $search = $request->getPost('search')['value'] ?? '';
+        $dt = $this->getDatatableRequest();
 
         /*
         |--------------------------------------------------------------------------
@@ -172,61 +160,57 @@ class Level extends BaseController
         $builder = $this->levelModel;
 
         /*
-    |--------------------------------------------------------------------------
-    | SEARCH
-    |--------------------------------------------------------------------------
-    */
-        if (!empty($search)) {
+        |--------------------------------------------------------------------------
+        | SEARCH
+        |--------------------------------------------------------------------------
+        */
+        if (!empty($dt['search'])) {
 
             $builder = $builder
                 ->groupStart()
-                ->like('name', $search)
+                ->like('name', $dt['search'])
                 ->groupEnd();
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | TOTAL FILTERED
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | TOTAL FILTERED
+        |--------------------------------------------------------------------------
+        */
         $filtered = $builder->countAllResults(false);
 
         /*
-    |--------------------------------------------------------------------------
-    | ORDER
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | ORDER
+        |--------------------------------------------------------------------------
+        */
         $columns = [
             0 => 'id',
             1 => 'name',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
-        $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
+        $orderColumn = $this->getDatatableOrderColumn(
+            $columns,
+            $dt['orderColumnIndex'],
+            'name'
+        );
 
-        $orderColumn = $columns[$orderColumnIndex] ?? 'name';
-
-        $builder->orderBy($orderColumn, $orderDir);
+        $builder->orderBy($orderColumn, $dt['orderDir']);
 
         /*
-    |--------------------------------------------------------------------------
-    | GET DATA
-    |--------------------------------------------------------------------------
-    */
-        $levels = $builder->findAll($length, $start);
+        |--------------------------------------------------------------------------
+        | GET DATA
+        |--------------------------------------------------------------------------
+        */
+        $levels = $builder->findAll($dt['length'], $dt['start']);
 
         $data = [];
 
         foreach ($levels as $key => $level) {
 
-            $action = '<div class="flex items-center gap-2">';
+            $actionButtons = [];
 
-            /*
-        |--------------------------------------------------------------------------
-        | ACCESS
-        |--------------------------------------------------------------------------
-        */
-            $action .= '
+            $actionButtons[] = '
             <a
                 href="' . site_url('menu-access/' . $level['id']) . '"
                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700">
@@ -235,62 +219,28 @@ class Level extends BaseController
             </a>
         ';
 
-            /*
-        |--------------------------------------------------------------------------
-        | EDIT
-        |--------------------------------------------------------------------------
-        */
             if (hasPermission('levels', 'update')) {
-
-                $action .= '
-                <a
-                    href="' . site_url('levels/edit/' . $level['id']) . '"
-                    class="rounded-lg bg-yellow-500 px-4 py-2 text-sm text-white hover:bg-yellow-600">
-
-                    Edit
-                </a>
-            ';
+                $actionButtons[] = renderEditButton('levels/edit/' . $level['id']);
             }
 
-            /*
-        |--------------------------------------------------------------------------
-        | DELETE
-        |--------------------------------------------------------------------------
-        */
             if (hasPermission('levels', 'delete')) {
-
-                $action .= '
-                <a
-                    href="' . site_url('levels/delete/' . $level['id']) . '"
-                    onclick="return confirm(\'Hapus data ini?\')"
-                    class="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">
-
-                    Delete
-                </a>
-            ';
+                $actionButtons[] = renderDeleteButton('levels/delete/' . $level['id']);
             }
-
-            $action .= '</div>';
 
             $data[] = [
-                'no'     => $start + $key + 1,
+                'no'     => $dt['start'] + $key + 1,
                 'name'   => esc($level['name']),
-                'action' => $action,
+                'action' => renderActionButtons($actionButtons),
             ];
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | TOTAL
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | TOTAL
+        |--------------------------------------------------------------------------
+        */
         $total = $this->levelModel->countAll();
 
-        return $this->response->setJSON([
-            'draw'            => intval($draw),
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $filtered,
-            'data'            => $data,
-        ]);
+        return $this->formatDatatableResponse($dt['draw'], $total, $filtered, $data);
     }
 }

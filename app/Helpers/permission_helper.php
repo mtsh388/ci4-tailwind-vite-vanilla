@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\MenuAccessModel;
+helper('permission_field');
 
 if (!function_exists('hasPermission')) {
 
@@ -17,15 +17,7 @@ if (!function_exists('hasPermission')) {
       return false;
     }
 
-    $permissionField = match ($action) {
-
-      'view'   => 'can_view',
-      'create' => 'can_create',
-      'update' => 'can_update',
-      'delete' => 'can_delete',
-
-      default => 'can_view',
-    };
+    $permissionField = getPermissionField($action);
 
     $access = $db
       ->table('menu_access')

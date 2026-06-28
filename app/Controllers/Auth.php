@@ -129,14 +129,8 @@ class Auth extends BaseController
             'confirm_password' => 'required|matches[new_password]',
         ];
 
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with(
-                'error',
-                implode(
-                    '<br>',
-                    $this->validator->getErrors()
-                )
-            );
+        if (!$this->validateOrRedirect($rules)) {
+            return redirect()->back()->withInput();
         }
 
         $user = $this->userModel->find(session('user_id'));

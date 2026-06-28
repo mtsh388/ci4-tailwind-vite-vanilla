@@ -59,4 +59,24 @@ abstract class BaseController extends Controller
 
         return view($view, $data);
     }
+
+    protected function validateOrRedirect(array $rules): bool
+    {
+        if ($this->validate($rules)) {
+            return true;
+        }
+
+        $errors = $this->validator->getErrors();
+
+        session()->setFlashdata('error', implode('<br>', $errors));
+
+        return false;
+    }
+
+    protected function checkPermission(string $url, string $action = 'view'): void
+    {
+        if (!hasPermission($url, $action)) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+    }
 }
