@@ -151,12 +151,19 @@ class Auth extends BaseController
             );
         }
 
-        $this->userModel->update($user['id'], [
+        $updated = $this->userModel->update($user['id'], [
             'password' => password_hash(
                 $this->request->getPost('new_password'),
                 PASSWORD_DEFAULT
             )
         ]);
+
+        if (!$updated) {
+            return redirect()->back()->with(
+                'error',
+                'Gagal mengubah password'
+            );
+        }
 
         return redirect()->back()->with(
             'success',
@@ -205,12 +212,18 @@ class Auth extends BaseController
         | UPDATE PASSWORD
         |--------------------------------------------------------------------------
         */
-        $this->userModel->update($user['id'], [
+        $updated = $this->userModel->update($user['id'], [
             'password' => password_hash(
                 $randomPassword,
                 PASSWORD_DEFAULT
             ),
         ]);
+
+        if (!$updated) {
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal mereset password');
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -258,12 +271,27 @@ class Auth extends BaseController
                 'Password baru berhasil dikirim ke email'
             );
     }
-    public function insert_admin(){
-        $this->userModel->insert([
+    public function insert_admin()
+    {
+        $inserted = $this->userModel->insert([
             'nama' => 'Admin',
             'username' => 'admin',
             'email' => 'mtsyarif388@gmail.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT)
+            'password' => password_hash('password123', PASSWORD_DEFAULT),
+            'level_id' => 1,
+            'is_active' => 1,
         ]);
+
+        if (!$inserted) {
+            return redirect()->to('/login')->with(
+                'error',
+                'Gagal membuat admin'
+            );
+        }
+
+        return redirect()->to('/login')->with(
+            'success',
+            'Admin berhasil dibuat'
+        );
     }
 }

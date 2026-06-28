@@ -60,8 +60,17 @@ class MenuAccess extends BaseController
     */
     public function update($levelId)
     {
+        $level = $this->levelModel->find($levelId);
+
+        if (!$level) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $permissions =
             $this->request->getPost('permissions') ?? [];
+
+        $db = \Config\Database::connect();
+        $db->transStart();
 
         /*
         |--------------------------------------------------------------------------
@@ -97,6 +106,14 @@ class MenuAccess extends BaseController
                 'can_delete' =>
                 isset($permission['delete']) ? 1 : 0,
             ]);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal mengupdate permission');
         }
 
         return redirect()
@@ -268,10 +285,36 @@ class MenuAccess extends BaseController
 
         $data = $request->getJSON(true);
 
-        $levelId   = $data['level_id'];
-        $menuId    = $data['menu_id'];
+        /*
+    |--------------------------------------------------------------------------
+    | VALIDATE INPUT
+    |--------------------------------------------------------------------------
+    */
+        if (
+            !isset($data['level_id']) ||
+            !isset($data['menu_id']) ||
+            !isset($data['permission']) ||
+            !isset($data['value'])
+        ) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap',
+            ]);
+        }
+
+        $levelId    = $data['level_id'];
+        $menuId     = $data['menu_id'];
         $permission = $data['permission'];
         $value      = $data['value'];
+
+        $allowedPermissions = ['view', 'create', 'update', 'delete'];
+
+        if (!in_array($permission, $allowedPermissions, true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Permission tidak valid',
+            ]);
+        }
 
         /*
     |--------------------------------------------------------------------------
@@ -285,7 +328,7 @@ class MenuAccess extends BaseController
 
         if (!$access) {
 
-            $this->menuAccessModel->insert([
+            $inserted = $this->menuAccessModel->insert([
                 'level_id'   => $levelId,
                 'menu_id'    => $menuId,
                 'can_view'   => 0,
@@ -293,6 +336,13 @@ class MenuAccess extends BaseController
                 'can_update' => 0,
                 'can_delete' => 0,
             ]);
+
+            if (!$inserted) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal membuat akses menu',
+                ]);
+            }
 
             $access = $this->menuAccessModel
                 ->where('level_id', $levelId)
@@ -317,9 +367,16 @@ class MenuAccess extends BaseController
     | UPDATE
     |--------------------------------------------------------------------------
     */
-        $this->menuAccessModel->update($access['id'], [
+        $updated = $this->menuAccessModel->update($access['id'], [
             $field => $value
         ]);
+
+        if (!$updated) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate permission',
+            ]);
+        }
 
         return $this->response->setJSON([
             'success' => true,

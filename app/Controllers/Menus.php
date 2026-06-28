@@ -81,7 +81,7 @@ class Menus extends BaseController
             | INSERT MENU
             |--------------------------------------------------------------------------
         */
-        $this->menuModel->insert([
+        $inserted = $this->menuModel->insert([
             'parent_id'  => $parentId ?: null,
             'name'       => $this->request->getPost('name'),
             'icon'       => $this->request->getPost('icon'),
@@ -89,6 +89,13 @@ class Menus extends BaseController
             'sort_order' => $this->request->getPost('sort_order'),
             'is_active'  => $this->request->getPost('is_active'),
         ]);
+
+        if (!$inserted) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan menu');
+        }
 
         /*
             |--------------------------------------------------------------------------
@@ -202,9 +209,15 @@ class Menus extends BaseController
                 );
         }
 
+        $menu = $this->menuModel->find($id);
+
+        if (!$menu) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $parentId = $this->request->getPost('parent_id');
 
-        $this->menuModel->update($id, [
+        $updated = $this->menuModel->update($id, [
             'parent_id' => $parentId ?: null,
             'name'      => $this->request->getPost('name'),
             'icon'      => $this->request->getPost('icon'),
@@ -212,6 +225,13 @@ class Menus extends BaseController
             'sort_order' => $this->request->getPost('sort_order'),
             'is_active' => $this->request->getPost('is_active'),
         ]);
+
+        if (!$updated) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal mengupdate menu');
+        }
 
         return redirect()
             ->to('/menus')
@@ -693,9 +713,16 @@ class Menus extends BaseController
         */
         $newStatus = $menu['is_active'] ? 0 : 1;
 
-        $this->menuModel->update($id, [
+        $updated = $this->menuModel->update($id, [
             'is_active' => $newStatus,
         ]);
+
+        if (!$updated) {
+            return $this->response->setJSON([
+                'status'  => false,
+                'message' => 'Gagal mengupdate status',
+            ]);
+        }
 
         return $this->response->setJSON([
             'status'    => true,
