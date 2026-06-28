@@ -23,6 +23,10 @@ class Users extends BaseController
     */
     public function index()
     {
+        if (!hasPermission('users', 'view')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         return $this->render('users/index', [
             'title' => 'Users',
         ]);
@@ -84,8 +88,9 @@ class Users extends BaseController
             3 => 'levels.name',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
+        $orderColumnIndex = (int) ($request->getPost('order')[0]['column'] ?? 1);
         $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
+        $orderDir         = in_array(strtolower($orderDir), ['asc', 'desc'], true) ? $orderDir : 'asc';
 
         $orderColumn = $columns[$orderColumnIndex] ?? 'users.nama';
 
@@ -202,6 +207,10 @@ class Users extends BaseController
     */
     public function create()
     {
+        if (!hasPermission('users', 'create')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         return $this->render('users/create', [
             'title'  => 'Tambah User',
             'levels' => $this->levelModel->findAll(),
@@ -271,6 +280,10 @@ class Users extends BaseController
         | INSERT
         |--------------------------------------------------------------------------
         */
+        if (!hasPermission('users', 'create')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $this->userModel->insert([
             'nama'      => $this->request->getPost('nama'),
             'email'     => strtolower($this->request->getPost('email')),
@@ -300,9 +313,19 @@ class Users extends BaseController
     */
     public function edit($id)
     {
+        if (!hasPermission('users', 'update')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         return $this->render('users/edit', [
             'title'  => 'Edit User',
-            'user'   => $this->userModel->find($id),
+            'user'   => $user,
             'levels' => $this->levelModel->findAll(),
         ]);
     }
@@ -314,14 +337,58 @@ class Users extends BaseController
     */
     public function update($id)
     {
+        if (!hasPermission('users', 'update')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $rules = [
+            'nama' => [
+                'label' => 'Nama',
+                'rules' => 'required|min_length[3]',
+            ],
+            'username' => [
+                'label' => 'Username',
+                'rules' => 'required|min_length[3]|is_unique[users.username,id,' . $id . ']',
+            ],
+            'level_id' => [
+                'label' => 'Level',
+                'rules' => 'required|numeric',
+            ],
+        ];
+
+        if ($this->request->getPost('password')) {
+            $rules['password'] = [
+                'label' => 'Password',
+                'rules' => 'min_length[6]',
+            ];
+        }
+
+        if (!$this->validate($rules)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'error',
+                    implode(
+                        '<br>',
+                        $this->validator->getErrors()
+                    )
+                );
+        }
+
         $data = [
-            'name'     => $this->request->getPost('name'),
-            'username' => $this->request->getPost('username'),
+            'nama'     => $this->request->getPost('nama'),
+            'username' => trim($this->request->getPost('username')),
             'level_id' => $this->request->getPost('level_id'),
         ];
 
         if ($this->request->getPost('password')) {
-
             $data['password'] = password_hash(
                 $this->request->getPost('password'),
                 PASSWORD_DEFAULT
@@ -375,6 +442,16 @@ class Users extends BaseController
     */
     public function delete($id)
     {
+        if (!hasPermission('users', 'delete')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $this->userModel->delete($id);
 
         return redirect()

@@ -25,6 +25,10 @@ class Menus extends BaseController
     */
     public function index()
     {
+        if (!hasPermission('menus', 'view')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $menus = $this->menuModel
             ->orderBy('sort_order', 'ASC')
             ->findAll();
@@ -42,6 +46,10 @@ class Menus extends BaseController
     */
     public function create()
     {
+        if (!hasPermission('menus', 'create')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         return $this->render('menus/create', [
             'title' => 'Tambah Menu',
 
@@ -58,6 +66,10 @@ class Menus extends BaseController
     */
     public function store()
     {
+        if (!hasPermission('menus', 'create')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $rules = [
             'name' => 'required',
             'url'  => 'required',
@@ -162,6 +174,10 @@ class Menus extends BaseController
     */
     public function edit($id)
     {
+        if (!hasPermission('menus', 'update')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $menu = $this->menuModel->find($id);
 
         if (!$menu) {
@@ -186,6 +202,10 @@ class Menus extends BaseController
     */
     public function update($id)
     {
+        if (!hasPermission('menus', 'update')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $rules = [
             'name' => 'required',
             'url'  => 'required',
@@ -228,6 +248,10 @@ class Menus extends BaseController
     */
     public function delete($id)
     {
+        if (!hasPermission('menus', 'delete')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $db = \Config\Database::connect();
 
         $db->transStart();
@@ -329,8 +353,9 @@ class Menus extends BaseController
             4 => 'menus.is_active',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
+        $orderColumnIndex = (int) ($request->getPost('order')[0]['column'] ?? 1);
         $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
+        $orderDir         = in_array(strtolower($orderDir), ['asc', 'desc'], true) ? $orderDir : 'asc';
 
         $orderColumn = $columns[$orderColumnIndex] ?? 'menus.sort_order';
 
@@ -475,13 +500,13 @@ class Menus extends BaseController
 
                         'url'    => '
                         <span class="text-slate-700 dark:text-slate-300">
-                            ' . ($menu['url'] ?: '-') . '
+                            ' . esc($menu['url'] ?: '-') . '
                         </span>
                     ',
 
                         'icon'   => '
                         <span class="text-slate-700 dark:text-slate-300">
-                            ' . ($menu['icon'] ?: '-') . '
+                            ' . esc($menu['icon'] ?: '-') . '
                         </span>
                     ',
 
@@ -620,13 +645,13 @@ class Menus extends BaseController
 
                     'url'    => '
                     <span class="text-slate-700 dark:text-slate-300">
-                        ' . ($menu['url'] ?: '-') . '
+                        ' . esc($menu['url'] ?: '-') . '
                     </span>
                 ',
 
                     'icon'   => '
                     <span class="text-slate-700 dark:text-slate-300">
-                        ' . ($menu['icon'] ?: '-') . '
+                        ' . esc($menu['icon'] ?: '-') . '
                     </span>
                 ',
 

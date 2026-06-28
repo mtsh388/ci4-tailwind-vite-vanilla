@@ -9,7 +9,6 @@ $routes->get('/', 'Auth::login');
 
 $routes->get('/login', 'Auth::login');
 $routes->post('/login/process', 'Auth::process');
-$routes->get('/auth/insert_admin', 'Auth::insert_admin');
 $routes->get('/logout', 'Auth::logout');
 
 $routes->group('', ['filter' => 'auth'], function ($routes) {
@@ -29,7 +28,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('edit/(:num)', 'Users::edit/$1');
     $routes->post('update/(:num)', 'Users::update/$1');
 
-    $routes->get('delete/(:num)', 'Users::delete/$1');
+    $routes->post('delete/(:num)', 'Users::delete/$1');
 
     $routes->post('datatable', 'Users::datatable');
     $routes->post('toggle-status/(:num)', 'Users::toggleStatus/$1');
