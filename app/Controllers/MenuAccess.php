@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\LevelModel;
 use App\Models\MenuModel;
 use App\Models\MenuAccessModel;
+use App\Traits\DatatableTrait;
 
 class MenuAccess extends BaseController
 {
+    use DatatableTrait;
+
     protected $levelModel;
     protected $menuModel;
     protected $menuAccessModel;
@@ -19,6 +22,8 @@ class MenuAccess extends BaseController
         $this->menuModel = new MenuModel();
 
         $this->menuAccessModel = new MenuAccessModel();
+
+        helper('permission_field');
     }
 
     /*
@@ -109,18 +114,13 @@ class MenuAccess extends BaseController
 
     public function datatable($levelId)
     {
-        $request = service('request');
-
-        $draw   = $request->getPost('draw');
-        $start  = $request->getPost('start');
-        $length = $request->getPost('length');
-        $search = $request->getPost('search')['value'] ?? '';
+        $dt = $this->getDatatableRequest();
 
         /*
-    |--------------------------------------------------------------------------
-    | QUERY
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | QUERY
+        |--------------------------------------------------------------------------
+        */
         $builder = $this->menuModel
             ->select('
             menus.*,
@@ -145,40 +145,40 @@ class MenuAccess extends BaseController
             ->where('menus.url !=', '#');
 
         /*
-    |--------------------------------------------------------------------------
-    | SEARCH
-    |--------------------------------------------------------------------------
-    */
-        if (!empty($search)) {
+        |--------------------------------------------------------------------------
+        | SEARCH
+        |--------------------------------------------------------------------------
+        */
+        if (!empty($dt['search'])) {
 
             $builder->groupStart()
-                ->like('menus.name', $search)
-                ->orLike('parent.name', $search)
+                ->like('menus.name', $dt['search'])
+                ->orLike('parent.name', $dt['search'])
                 ->groupEnd();
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | FILTERED
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | FILTERED
+        |--------------------------------------------------------------------------
+        */
         $filtered = $builder->countAllResults(false);
 
         /*
-    |--------------------------------------------------------------------------
-    | ORDER
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | ORDER
+        |--------------------------------------------------------------------------
+        */
         $builder
             ->orderBy('parent.name', 'ASC')
             ->orderBy('menus.name', 'ASC');
 
         /*
-    |--------------------------------------------------------------------------
-    | GET DATA
-    |--------------------------------------------------------------------------
-    */
-        $menus = $builder->findAll($length, $start);
+        |--------------------------------------------------------------------------
+        | GET DATA
+        |--------------------------------------------------------------------------
+        */
+        $menus = $builder->findAll($dt['length'], $dt['start']);
 
         $data = [];
 
@@ -225,22 +225,18 @@ class MenuAccess extends BaseController
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | TOTAL
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | TOTAL
+        |--------------------------------------------------------------------------
+        */
         $total = $this->menuModel
             ->where('url !=', '')
             ->where('url !=', '#')
             ->countAllResults();
 
-        return $this->response->setJSON([
-            'draw'            => intval($draw),
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $filtered,
-            'data'            => $data,
-        ]);
+        return $this->formatDatatableResponse($dt['draw'], $total, $filtered, $data);
     }
+
     private function permissionCheckbox(
         $levelId,
         $menuId,
@@ -262,6 +258,7 @@ class MenuAccess extends BaseController
         >
     ';
     }
+
     public function updatePermission()
     {
         $request = service('request');
@@ -274,10 +271,10 @@ class MenuAccess extends BaseController
         $value      = $data['value'];
 
         /*
-    |--------------------------------------------------------------------------
-    | CHECK EXIST
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | CHECK EXIST
+        |--------------------------------------------------------------------------
+        */
         $access = $this->menuAccessModel
             ->where('level_id', $levelId)
             ->where('menu_id', $menuId)
@@ -301,22 +298,17 @@ class MenuAccess extends BaseController
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | FIELD
-    |--------------------------------------------------------------------------
-    */
-        $field = match ($permission) {
-            'view'   => 'can_view',
-            'create' => 'can_create',
-            'update' => 'can_update',
-            'delete' => 'can_delete',
-        };
+        |--------------------------------------------------------------------------
+        | FIELD
+        |--------------------------------------------------------------------------
+        */
+        $field = getPermissionField($permission);
 
         /*
-    |--------------------------------------------------------------------------
-    | UPDATE
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | UPDATE
+        |--------------------------------------------------------------------------
+        */
         $this->menuAccessModel->update($access['id'], [
             $field => $value
         ]);

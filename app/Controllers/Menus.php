@@ -5,9 +5,14 @@ namespace App\Controllers;
 use App\Models\MenuModel;
 use App\Models\MenuAccessModel;
 use App\Models\LevelModel;
+use App\Traits\DatatableTrait;
+use App\Traits\ToggleStatusTrait;
 
 class Menus extends BaseController
 {
+    use DatatableTrait;
+    use ToggleStatusTrait;
+
     protected $menuModel;
     protected $menuAccessModel;
     protected $levelModel;
@@ -16,6 +21,7 @@ class Menus extends BaseController
         $this->menuModel = new MenuModel();
         $this->menuAccessModel = new MenuAccessModel();
         $this->levelModel = new LevelModel();
+        helper('datatable_html');
     }
 
     /*
@@ -63,15 +69,11 @@ class Menus extends BaseController
             'url'  => 'required',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateOrRedirect($rules)) {
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->with(
-                    'error',
-                    validation_list_errors()
-                );
+                ->withInput();
         }
 
         $parentId = $this->request->getPost('parent_id');
@@ -191,15 +193,11 @@ class Menus extends BaseController
             'url'  => 'required',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateOrRedirect($rules)) {
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->with(
-                    'error',
-                    validation_list_errors()
-                );
+                ->withInput();
         }
 
         $parentId = $this->request->getPost('parent_id');
@@ -272,14 +270,10 @@ class Menus extends BaseController
                 'Menu berhasil dihapus'
             );
     }
+
     public function datatable()
     {
-        $request = service('request');
-
-        $draw   = $request->getPost('draw');
-        $start  = $request->getPost('start');
-        $length = $request->getPost('length');
-        $search = $request->getPost('search')['value'] ?? '';
+        $dt = $this->getDatatableRequest();
 
         /*
         |--------------------------------------------------------------------------
@@ -299,13 +293,13 @@ class Menus extends BaseController
         | SEARCH
         |--------------------------------------------------------------------------
         */
-        if (!empty($search)) {
+        if (!empty($dt['search'])) {
 
             $builder->groupStart()
-                ->like('menus.name', $search)
-                ->orLike('menus.url', $search)
-                ->orLike('menus.icon', $search)
-                ->orLike('parent.name', $search)
+                ->like('menus.name', $dt['search'])
+                ->orLike('menus.url', $dt['search'])
+                ->orLike('menus.icon', $dt['search'])
+                ->orLike('parent.name', $dt['search'])
                 ->groupEnd();
         }
 
@@ -329,10 +323,11 @@ class Menus extends BaseController
             4 => 'menus.is_active',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
-        $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
-
-        $orderColumn = $columns[$orderColumnIndex] ?? 'menus.sort_order';
+        $orderColumn = $this->getDatatableOrderColumn(
+            $columns,
+            $dt['orderColumnIndex'],
+            'menus.sort_order'
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -342,7 +337,7 @@ class Menus extends BaseController
         $builder
             ->orderBy('IFNULL(menus.parent_id, menus.id)', '', false)
             ->orderBy('(menus.parent_id IS NULL)', 'DESC', false)
-            ->orderBy($orderColumn, $orderDir)
+            ->orderBy($orderColumn, $dt['orderDir'])
             ->orderBy('menus.sort_order', 'ASC');
 
         /*
@@ -350,7 +345,7 @@ class Menus extends BaseController
         | GET DATA
         |--------------------------------------------------------------------------
         */
-        $menus = $builder->findAll($length, $start);
+        $menus = $builder->findAll($dt['length'], $dt['start']);
 
         /*
         |--------------------------------------------------------------------------
@@ -361,96 +356,23 @@ class Menus extends BaseController
 
         foreach ($menus as $menu) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | STATUS BADGE
-            |--------------------------------------------------------------------------
-            */
-            $badge = '
-            <label class="relative inline-flex cursor-pointer items-center">
+            $badge = renderToggleSwitch(
+                $menu['id'],
+                'menus/toggle-status',
+                (bool) $menu['is_active']
+            );
 
-                <input
-                    type="checkbox"
-                    value="' . $menu['id'] . '"
-                    class="toggle-status peer sr-only"
-                    data-url="' . site_url('menus/toggle-status') . '"
-                    ' . ($menu['is_active'] ? 'checked' : '') . '>
-
-                <div
-                    class="peer h-6 w-11 rounded-full bg-slate-300 transition
-
-                    dark:bg-slate-700
-
-                    after:absolute
-                    after:left-[2px]
-                    after:top-[2px]
-                    after:h-5
-                    after:w-5
-                    after:rounded-full
-                    after:bg-white
-                    after:transition-all
-
-                    peer-checked:bg-green-500
-                    peer-checked:after:translate-x-full">
-                </div>
-
-            </label>
-        ';
-
-            /*
-            |--------------------------------------------------------------------------
-            | ACTION BUTTONS
-            |--------------------------------------------------------------------------
-            */
             $actionButtons = [];
 
             if (hasPermission('menus', 'update')) {
-
-                $actionButtons[] = '
-                <a
-                    href="' . site_url('menus/edit/' . $menu['id']) . '"
-                    class="rounded-lg
-                           bg-yellow-500
-                           px-3 py-2
-                           text-xs
-                           font-medium
-                           text-white
-                           transition
-                           hover:bg-yellow-600">
-
-                    Edit
-
-                </a>
-            ';
+                $actionButtons[] = renderEditButton('menus/edit/' . $menu['id']);
             }
 
             if (hasPermission('menus', 'delete')) {
-
-                $actionButtons[] = '
-                <button
-                    type="button"
-                    data-id="' . $menu['id'] . '"
-                    class="btn-delete
-                           rounded-lg
-                           bg-red-600
-                           px-3 py-2
-                           text-xs
-                           font-medium
-                           text-white
-                           transition
-                           hover:bg-red-700">
-
-                    Delete
-
-                </button>
-            ';
+                $actionButtons[] = renderDeleteButton('menus/delete/' . $menu['id'], 'button');
             }
 
-            $action = '
-            <div class="flex items-center justify-center gap-2">
-                ' . implode('', $actionButtons) . '
-            </div>
-        ';
+            $action = renderActionButtons($actionButtons, 'center');
 
             /*
             |--------------------------------------------------------------------------
@@ -517,96 +439,23 @@ class Menus extends BaseController
                     ];
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | STATUS BADGE
-                |--------------------------------------------------------------------------
-                */
-                $badge = '
-                <label class="relative inline-flex cursor-pointer items-center">
+                $badge = renderToggleSwitch(
+                    $menu['id'],
+                    'menus/toggle-status',
+                    (bool) $menu['is_active']
+                );
 
-                    <input
-                        type="checkbox"
-                        value="' . $menu['id'] . '"
-                        class="toggle-status peer sr-only"
-                        data-url="' . site_url('menus/toggle-status') . '"
-                        ' . ($menu['is_active'] ? 'checked' : '') . '>
-
-                    <div
-                        class="peer h-6 w-11 rounded-full bg-slate-300 transition
-
-                        dark:bg-slate-700
-
-                        after:absolute
-                        after:left-[2px]
-                        after:top-[2px]
-                        after:h-5
-                        after:w-5
-                        after:rounded-full
-                        after:bg-white
-                        after:transition-all
-
-                        peer-checked:bg-green-500
-                        peer-checked:after:translate-x-full">
-                    </div>
-
-                </label>
-            ';
-
-                /*
-                |--------------------------------------------------------------------------
-                | ACTION BUTTONS
-                |--------------------------------------------------------------------------
-                */
                 $actionButtons = [];
 
                 if (hasPermission('menus', 'update')) {
-
-                    $actionButtons[] = '
-                    <a
-                        href="' . site_url('menus/edit/' . $menu['id']) . '"
-                        class="rounded-lg
-                               bg-yellow-500
-                               px-3 py-2
-                               text-xs
-                               font-medium
-                               text-white
-                               transition
-                               hover:bg-yellow-600">
-
-                        Edit
-
-                    </a>
-                ';
+                    $actionButtons[] = renderEditButton('menus/edit/' . $menu['id']);
                 }
 
                 if (hasPermission('menus', 'delete')) {
-
-                    $actionButtons[] = '
-                    <button
-                        type="button"
-                        data-id="' . $menu['id'] . '"
-                        class="btn-delete
-                               rounded-lg
-                               bg-red-600
-                               px-3 py-2
-                               text-xs
-                               font-medium
-                               text-white
-                               transition
-                               hover:bg-red-700">
-
-                        Delete
-
-                    </button>
-                ';
+                    $actionButtons[] = renderDeleteButton('menus/delete/' . $menu['id'], 'button');
                 }
 
-                $action = '
-                <div class="flex items-center justify-center gap-2">
-                    ' . implode('', $actionButtons) . '
-                </div>
-            ';
+                $action = renderActionButtons($actionButtons, 'center');
 
                 $groupedMenus[$menu['parent_id']]['children'][] = [
 
@@ -662,45 +511,11 @@ class Menus extends BaseController
         */
         $total = $this->menuModel->countAll();
 
-        return $this->response->setJSON([
-            'draw'            => intval($draw),
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $filtered,
-            'data'            => $data,
-        ]);
+        return $this->formatDatatableResponse($dt['draw'], $total, $filtered, $data);
     }
+
     public function toggleStatus($id)
     {
-        /*
-            |--------------------------------------------------------------------------
-            | GET MENU
-            |--------------------------------------------------------------------------
-        */
-        $menu = $this->menuModel->find($id);
-
-        if (!$menu) {
-
-            return $this->response->setJSON([
-                'status'  => false,
-                'message' => 'Menu tidak ditemukan',
-            ]);
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | TOGGLE STATUS
-            |--------------------------------------------------------------------------
-        */
-        $newStatus = $menu['is_active'] ? 0 : 1;
-
-        $this->menuModel->update($id, [
-            'is_active' => $newStatus,
-        ]);
-
-        return $this->response->setJSON([
-            'status'    => true,
-            'message'   => 'Status berhasil diupdate',
-            'is_active' => $newStatus,
-        ]);
+        return $this->handleToggleStatus($this->menuModel, $id, 'Menu');
     }
 }

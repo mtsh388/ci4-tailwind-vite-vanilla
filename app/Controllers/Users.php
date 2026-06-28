@@ -4,9 +4,14 @@ namespace App\Controllers;
 
 use App\Models\UsersModel;
 use App\Models\LevelModel;
+use App\Traits\DatatableTrait;
+use App\Traits\ToggleStatusTrait;
 
 class Users extends BaseController
 {
+    use DatatableTrait;
+    use ToggleStatusTrait;
+
     protected $userModel;
     protected $levelModel;
 
@@ -14,6 +19,7 @@ class Users extends BaseController
     {
         $this->userModel  = new UsersModel();
         $this->levelModel = new LevelModel();
+        helper('datatable_html');
     }
 
     /*
@@ -35,12 +41,7 @@ class Users extends BaseController
     */
     public function datatable()
     {
-        $request = service('request');
-
-        $draw   = $request->getPost('draw');
-        $start  = $request->getPost('start');
-        $length = $request->getPost('length');
-        $search = $request->getPost('search')['value'] ?? '';
+        $dt = $this->getDatatableRequest();
 
         /*
         |--------------------------------------------------------------------------
@@ -56,12 +57,12 @@ class Users extends BaseController
         | SEARCH
         |--------------------------------------------------------------------------
         */
-        if (!empty($search)) {
+        if (!empty($dt['search'])) {
 
             $builder->groupStart()
-                ->like('users.nama', $search)
-                ->orLike('users.username', $search)
-                ->orLike('levels.name', $search)
+                ->like('users.nama', $dt['search'])
+                ->orLike('users.username', $dt['search'])
+                ->orLike('levels.name', $dt['search'])
                 ->groupEnd();
         }
 
@@ -84,99 +85,48 @@ class Users extends BaseController
             3 => 'levels.name',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
-        $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
+        $orderColumn = $this->getDatatableOrderColumn(
+            $columns,
+            $dt['orderColumnIndex'],
+            'users.nama'
+        );
 
-        $orderColumn = $columns[$orderColumnIndex] ?? 'users.nama';
-
-        $builder->orderBy($orderColumn, $orderDir);
+        $builder->orderBy($orderColumn, $dt['orderDir']);
 
         /*
         |--------------------------------------------------------------------------
         | GET DATA
         |--------------------------------------------------------------------------
         */
-        $users = $builder->findAll($length, $start);
+        $users = $builder->findAll($dt['length'], $dt['start']);
 
         $data = [];
 
         foreach ($users as $key => $user) {
-            $status = '
-                <label class="relative inline-flex cursor-pointer items-center">
-
-                    <input
-                        type="checkbox"
-                        class="toggle-status peer sr-only"
-                        value="' . $user['id'] . '"
-                        ' . ($user['is_active'] ? 'checked' : '') . '
-                        data-url="' . site_url('users/toggle-status') . '"
-                        >
-
-                    <div class="h-6 w-11 rounded-full bg-slate-300
-                        transition
-                        peer-checked:bg-green-500
-
-                        after:absolute
-                        after:left-[2px]
-                        after:top-[2px]
-                        after:h-5
-                        after:w-5
-                        after:rounded-full
-                        after:bg-white
-                        after:transition-all
-                        peer-checked:after:translate-x-full">
-                    </div>
-
-                </label>';
+            $status = renderToggleSwitch(
+                $user['id'],
+                'users/toggle-status',
+                (bool) $user['is_active']
+            );
 
             $actionButtons = [];
 
-            /*
-            |--------------------------------------------------------------------------
-            | EDIT
-            |--------------------------------------------------------------------------
-            */
             if (hasPermission('users', 'update')) {
-
-                $actionButtons[] = '
-                    <a
-                        href="' . site_url('users/edit/' . $user['id']) . '"
-                        class="rounded-lg bg-yellow-500 px-3 py-2 text-xs font-medium text-white hover:bg-yellow-600">
-
-                        Edit
-                    </a>
-                ';
+                $actionButtons[] = renderEditButton('users/edit/' . $user['id']);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | DELETE
-            |--------------------------------------------------------------------------
-            */
             if (hasPermission('users', 'delete')) {
-
-                $actionButtons[] = '
-                    <a
-                        href="' . site_url('users/delete/' . $user['id']) . '"
-                        class="btn-delete rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">
-
-                        Delete
-                    </a>
-                ';
+                $actionButtons[] = renderDeleteButton('users/delete/' . $user['id']);
             }
 
             $data[] = [
-                'no'       => $start + $key + 1,
+                'no'       => $dt['start'] + $key + 1,
                 'nama'     => esc($user['nama']),
                 'username' => esc($user['username']),
-                'email' => esc($user['email']),
+                'email'    => esc($user['email']),
                 'level'    => esc($user['level_name'] ?? '-'),
-                'status'    => $status,
-                'action'   => '
-                    <div class="flex items-center gap-2">
-                        ' . implode('', $actionButtons) . '
-                    </div>
-                ',
+                'status'   => $status,
+                'action'   => renderActionButtons($actionButtons),
             ];
         }
 
@@ -187,12 +137,7 @@ class Users extends BaseController
         */
         $total = $this->userModel->countAll();
 
-        return $this->response->setJSON([
-            'draw'            => intval($draw),
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $filtered,
-            'data'            => $data,
-        ]);
+        return $this->formatDatatableResponse($dt['draw'], $total, $filtered, $data);
     }
 
     /*
@@ -252,18 +197,11 @@ class Users extends BaseController
         | VALIDATE
         |--------------------------------------------------------------------------
         */
-        if (!$this->validate($rules)) {
+        if (!$this->validateOrRedirect($rules)) {
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->with(
-                    'error',
-                    implode(
-                        '<br>',
-                        $this->validator->getErrors()
-                    )
-                );
+                ->withInput();
         }
 
         /*
@@ -334,40 +272,12 @@ class Users extends BaseController
             ->to('/users')
             ->with('success', 'User berhasil diupdate');
     }
+
     public function toggleStatus($id)
     {
-        /*
-            |--------------------------------------------------------------------------
-            | GET User
-            |--------------------------------------------------------------------------
-        */
-        $user = $this->userModel->find($id);
-
-        if (!$user) {
-
-            return $this->response->setJSON([
-                'status'  => false,
-                'message' => 'User tidak ditemukan',
-            ]);
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | TOGGLE STATUS
-            |--------------------------------------------------------------------------
-        */
-        $newStatus = $user['is_active'] ? 0 : 1;
-
-        $this->userModel->update($id, [
-            'is_active' => $newStatus,
-        ]);
-
-        return $this->response->setJSON([
-            'status'    => true,
-            'message'   => 'Status berhasil diupdate',
-            'is_active' => $newStatus,
-        ]);
+        return $this->handleToggleStatus($this->userModel, $id, 'User');
     }
+
     /*
         |--------------------------------------------------------------------------
         | DELETE
