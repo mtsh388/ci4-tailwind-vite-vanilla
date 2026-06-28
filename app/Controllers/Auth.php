@@ -258,12 +258,4 @@ class Auth extends BaseController
                 'Password baru berhasil dikirim ke email'
             );
     }
-    public function insert_admin(){
-        $this->userModel->insert([
-            'nama' => 'Admin',
-            'username' => 'admin',
-            'email' => 'mtsyarif388@gmail.com',
-            'password' => password_hash('password123', PASSWORD_DEFAULT)
-        ]);
-    }
 }

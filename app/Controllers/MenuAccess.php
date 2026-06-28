@@ -268,10 +268,23 @@ class MenuAccess extends BaseController
 
         $data = $request->getJSON(true);
 
-        $levelId   = $data['level_id'];
-        $menuId    = $data['menu_id'];
+        if (
+            empty($data['level_id']) || !is_numeric($data['level_id'])
+            || empty($data['menu_id']) || !is_numeric($data['menu_id'])
+            || empty($data['permission'])
+            || !in_array($data['permission'], ['view', 'create', 'update', 'delete'], true)
+            || !isset($data['value']) || !in_array((int) $data['value'], [0, 1], true)
+        ) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Invalid input',
+            ]);
+        }
+
+        $levelId    = (int) $data['level_id'];
+        $menuId     = (int) $data['menu_id'];
         $permission = $data['permission'];
-        $value      = $data['value'];
+        $value      = (int) $data['value'];
 
         /*
     |--------------------------------------------------------------------------

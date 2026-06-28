@@ -53,6 +53,10 @@ class Level extends BaseController
     */
     public function store()
     {
+        if (!hasPermission('levels', 'create')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $rules = [
             'name' => 'required|min_length[3]',
         ];
@@ -87,6 +91,10 @@ class Level extends BaseController
     */
     public function edit($id)
     {
+        if (!hasPermission('levels', 'update')) {
+            throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
+        }
+
         $level = $this->levelModel->find($id);
 
         if (!$level) {
@@ -201,8 +209,9 @@ class Level extends BaseController
             1 => 'name',
         ];
 
-        $orderColumnIndex = $request->getPost('order')[0]['column'] ?? 1;
+        $orderColumnIndex = (int) ($request->getPost('order')[0]['column'] ?? 1);
         $orderDir         = $request->getPost('order')[0]['dir'] ?? 'asc';
+        $orderDir         = in_array(strtolower($orderDir), ['asc', 'desc'], true) ? $orderDir : 'asc';
 
         $orderColumn = $columns[$orderColumnIndex] ?? 'name';
 

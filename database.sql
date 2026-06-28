@@ -104,8 +104,8 @@ CREATE TABLE `users` (
 
 /*Data for the table `users` */
 
-insert  into `users`(`id`,`level_id`,`nama`,`email`,`username`,`password`,`is_active`,`change_password`,`created_at`,`updated_at`) values 
-(7,1,'Admin','mtsyarif388@gmail.com','admin','$2y$12$hImj2/5TBvzihne/HMu9lek9nph6R2DVo4qi1axy.U2wKJHFbnTqm',1,1,'2026-05-28 12:28:58','2026-05-28 12:28:58');
+-- NOTE: Run the UserSeeder (php spark db:seed UserSeeder) to create the default admin user.
+-- Do NOT commit real password hashes or credentials into version control.
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
