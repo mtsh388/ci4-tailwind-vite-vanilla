@@ -271,7 +271,7 @@ class Users extends BaseController
         | INSERT
         |--------------------------------------------------------------------------
         */
-        $this->userModel->insert([
+        $inserted = $this->userModel->insert([
             'nama'      => $this->request->getPost('nama'),
             'email'     => strtolower($this->request->getPost('email')),
             'username'  => trim($this->request->getPost('username')),
@@ -282,6 +282,13 @@ class Users extends BaseController
             'level_id'  => $this->request->getPost('level_id'),
             'is_active' => 1,
         ]);
+
+        if (!$inserted) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan user');
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -300,9 +307,15 @@ class Users extends BaseController
     */
     public function edit($id)
     {
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         return $this->render('users/edit', [
             'title'  => 'Edit User',
-            'user'   => $this->userModel->find($id),
+            'user'   => $user,
             'levels' => $this->levelModel->findAll(),
         ]);
     }
@@ -314,21 +327,70 @@ class Users extends BaseController
     */
     public function update($id)
     {
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDATION
+        |--------------------------------------------------------------------------
+        */
+        $rules = [
+            'nama' => [
+                'label' => 'Nama',
+                'rules' => 'required|min_length[3]',
+            ],
+            'username' => [
+                'label' => 'Username',
+                'rules' => 'required|min_length[3]|is_unique[users.username,id,' . $id . ']',
+            ],
+            'level_id' => [
+                'label' => 'Level',
+                'rules' => 'required|numeric',
+            ],
+        ];
+
+        if ($this->request->getPost('password')) {
+            $rules['password'] = [
+                'label' => 'Password',
+                'rules' => 'min_length[6]',
+            ];
+        }
+
+        if (!$this->validate($rules)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'error',
+                    implode('<br>', $this->validator->getErrors())
+                );
+        }
+
         $data = [
-            'name'     => $this->request->getPost('name'),
+            'nama'     => $this->request->getPost('nama'),
             'username' => $this->request->getPost('username'),
             'level_id' => $this->request->getPost('level_id'),
         ];
 
         if ($this->request->getPost('password')) {
-
             $data['password'] = password_hash(
                 $this->request->getPost('password'),
                 PASSWORD_DEFAULT
             );
         }
 
-        $this->userModel->update($id, $data);
+        $updated = $this->userModel->update($id, $data);
+
+        if (!$updated) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal mengupdate user');
+        }
 
         return redirect()
             ->to('/users')
@@ -358,9 +420,16 @@ class Users extends BaseController
         */
         $newStatus = $user['is_active'] ? 0 : 1;
 
-        $this->userModel->update($id, [
+        $updated = $this->userModel->update($id, [
             'is_active' => $newStatus,
         ]);
+
+        if (!$updated) {
+            return $this->response->setJSON([
+                'status'  => false,
+                'message' => 'Gagal mengupdate status',
+            ]);
+        }
 
         return $this->response->setJSON([
             'status'    => true,
@@ -375,7 +444,21 @@ class Users extends BaseController
     */
     public function delete($id)
     {
-        $this->userModel->delete($id);
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            return redirect()
+                ->to('/users')
+                ->with('error', 'User tidak ditemukan');
+        }
+
+        $deleted = $this->userModel->delete($id);
+
+        if (!$deleted) {
+            return redirect()
+                ->to('/users')
+                ->with('error', 'Gagal menghapus user');
+        }
 
         return redirect()
             ->to('/users')

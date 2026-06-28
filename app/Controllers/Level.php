@@ -68,9 +68,16 @@ class Level extends BaseController
                 );
         }
 
-        $this->levelModel->insert([
+        $inserted = $this->levelModel->insert([
             'name' => $this->request->getPost('name'),
         ]);
+
+        if (!$inserted) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan level');
+        }
 
         return redirect()
             ->to('/levels')
@@ -124,9 +131,22 @@ class Level extends BaseController
                 );
         }
 
-        $this->levelModel->update($id, [
+        $level = $this->levelModel->find($id);
+
+        if (!$level) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $updated = $this->levelModel->update($id, [
             'name' => $this->request->getPost('name'),
         ]);
+
+        if (!$updated) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal mengupdate level');
+        }
 
         return redirect()
             ->to('/levels')
@@ -146,7 +166,22 @@ class Level extends BaseController
         if (!hasPermission('levels', 'delete')) {
             throw \CodeIgniter\Exceptions\PageForbiddenException::forPageForbidden();
         }
-        $this->levelModel->delete($id);
+
+        $level = $this->levelModel->find($id);
+
+        if (!$level) {
+            return redirect()
+                ->to('/levels')
+                ->with('error', 'Level tidak ditemukan');
+        }
+
+        $deleted = $this->levelModel->delete($id);
+
+        if (!$deleted) {
+            return redirect()
+                ->to('/levels')
+                ->with('error', 'Gagal menghapus level');
+        }
 
         return redirect()
             ->to('/levels')
